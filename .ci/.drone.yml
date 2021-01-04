@@ -1,0 +1,30 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+
+steps:
+  - name: docker-build
+    image: plugins/docker
+    pull: always
+    settings:
+      username: test
+      password: test1234
+      repo: nexus-docker.test.cyclone.com/${DRONE_REPO}
+      registry: nexus-docker.test.cyclone.com
+      tags: ${DRONE_COMMIT_SHA:0:8}
+      insecure: true
+      dockerfile: .ci/Dockerfile
+  - name: edit-yaml
+    image: nexus-docker.test.cyclone.com/testdev/python-base:latest
+    pull: always
+    commands:
+      - pip install -r requirements.txt
+      - python3 .ci/editYaml.py
+  - name: deploy
+    image: nexus-docker.test.cyclone.com/testdev/kubectl:latest
+    pull: always
+    commands:
+      - kubectl apply -f .ci/deployment.yaml
+image_pull_secrets:
+  - registry
